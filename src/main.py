@@ -1,6 +1,6 @@
 import os
 import shutil
-from textnode import TextNode, TextType
+import sys
 from markdown_to_html_node import markdown_to_html_node
 
 
@@ -20,6 +20,7 @@ def copy_directory(source, destination):
         else:
             copy_directory(source_path, destination_path)
 
+
 def extract_title(markdown):
     lines = markdown.split("\n")
 
@@ -30,8 +31,7 @@ def extract_title(markdown):
     raise Exception("No h1 header found")
 
 
-
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(
         f"Generating page from {from_path} "
         f"to {dest_path} using {template_path}"
@@ -51,6 +51,9 @@ def generate_page(from_path, template_path, dest_path):
     template = template.replace("{{ Title }}", title)
     template = template.replace("{{ Content }}", html)
 
+    template = template.replace('href="/', f'href="{basepath}')
+    template = template.replace('src="/', f'src="{basepath}')
+
     destination_directory = os.path.dirname(dest_path)
 
     if destination_directory:
@@ -59,7 +62,13 @@ def generate_page(from_path, template_path, dest_path):
     with open(dest_path, "w") as f:
         f.write(template)
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+
+def generate_pages_recursive(
+    dir_path_content,
+    template_path,
+    dest_dir_path,
+    basepath
+):
     for filename in os.listdir(dir_path_content):
         content_path = os.path.join(dir_path_content, filename)
 
@@ -71,7 +80,8 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
                 generate_page(
                     content_path,
                     template_path,
-                    dest_path
+                    dest_path,
+                    basepath
                 )
 
         else:
@@ -82,25 +92,25 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
             generate_pages_recursive(
                 content_path,
                 template_path,
-                new_dest_dir
+                new_dest_dir,
+                basepath
             )
 
+
 def main():
-    copy_directory("static", "public")
+    if len(sys.argv) > 1:
+        basepath = sys.argv[1]
+    else:
+        basepath = "/"
+
+    copy_directory("static", "docs")
 
     generate_pages_recursive(
-    "content",
-    "template.html",
-    "public"
+        "content",
+        "template.html",
+        "docs",
+        basepath
     )
-
-    node = TextNode(
-        "This is some anchor text",
-        TextType.LINK,
-        "https://www.boot.dev"
-    )
-
-    print(node)
 
 
 main()
